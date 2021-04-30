@@ -71,12 +71,12 @@ const ShippingScreen = ({ history }) => {
             onChange={(e) => setCountry(e.target.value)}
           ></Form.Control>
         </Form.Group>
-        <Form.Group controlId='country'>
-          <Form.Label>Country</Form.Label>
+        <Form.Group controlId='phone'>
+          <Form.Label>Phone</Form.Label>
           <Form.Control
             type='text'
-            placeholder='Enter country'
-            value={country}
+            placeholder='Enter Phone'
+            value={phone}
             required
             onChange={(e) => setPhone(e.target.value)}
           ></Form.Control>
