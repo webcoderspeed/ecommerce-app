@@ -110,6 +110,10 @@ const OrderScreen = ({ match, history }) => {
                 {order.shippingAddress.postalCode},{' '}
                 {order.shippingAddress.country}
               </p>
+              <p>
+                <strong>Phone:</strong>
+                {order.shippingAddress.phone}
+              </p>
               {order.isDelivered ? (
                 <Message variant='success'>
                   Delivered on {order.deliveredAt}
