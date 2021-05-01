@@ -62,18 +62,23 @@ const OrderScreen = ({ match, history }) => {
     SET_EMAIL_JS_USER_ID(EMAIL_JS_USER)    
   }
 
+  console.log(order)
+
   // Stripe Integration
    const onToken = (token) => {
+     console.log(token)
       axios.post('/api/config/secret',{
         token,
         amount: Math.floor(order.totalPrice)*100
       }).then(res => {
+    console.log(res)
         if(res.data.status==='success'){
           const paymentResult = {
             id: userInfo._id,
             status:res.data.status,
             email_address: token.email,
           }
+          console.log(paymentResult)
           dispatch(payOrder(orderId, paymentResult))
 
           // Sending Email
@@ -106,16 +111,18 @@ const OrderScreen = ({ match, history }) => {
       
   }
 
-  const [stripeKey, setStripeKey] = useState(null);
+  const [stripeKey, setStripeKey] = useState('');
 
   useEffect(() => {
     if (!userInfo) {
       history.push('/login')
     }
     const fetchStripe = async () => {
-      const {data: key} = await axios.get('/api/config/stripe')
-      setStripeKey(key)
+      const { data: key } = await axios.get('/api/config/stripe')
+      setStripeKey(key) 
     } 
+
+    console.log(stripeKey)
 
     if (!order || successPay || successDeliver || order._id !== orderId) {
       dispatch({ type: ORDER_PAY_RESET })
@@ -252,7 +259,7 @@ const OrderScreen = ({ match, history }) => {
                 <ListGroup.Item>
                     <StripeCheckout
                     token={onToken}
-                    stripeKey={stripeKey}
+                    stripeKey="pk_test_51Im01RSCM31BWx4aQinPcZIRzzxhjzbDa50uFaWBPycOFS6p5ub3z8swXgZqvcH1lZPW4D9vKlh5iN8lBS1cG9LG00JyPmhnyi"
                     amount={Math.floor(order.totalPrice)*100}
                     shippingAddress={true}
                     email={userInfo.email}
@@ -260,9 +267,9 @@ const OrderScreen = ({ match, history }) => {
                     zipCode={false}
                     billingAddress={true}
                   >
-                    {stripeKey ?  <button className="btn btn-primary">
+                     <button className="btn btn-primary">
                       Pay with credit card
-                       </button>: <loading/>}
+                       </button>
                     </StripeCheckout>
                 </ListGroup.Item>
               )}
