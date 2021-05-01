@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react'
-import axios from 'axios'
-import { PayPalButton } from 'react-paypal-button-v2'
+import React, {useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import axios from 'axios'
 import { Row, Col, ListGroup, Image, Card, Button } from 'react-bootstrap'
 import { useDispatch, useSelector } from 'react-redux'
 import Message from '../components/Message'
 import Loader from '../components/Loader'
+import StripeCheckout from 'react-stripe-checkout';
+import emailjs from 'emailjs-com';
 import {
   getOrderDetails,
   payOrder,
@@ -19,7 +20,6 @@ import {
 const OrderScreen = ({ match, history }) => {
   const orderId = match.params.id
 
-  const [sdkReady, setSdkReady] = useState(false)
 
   const dispatch = useDispatch()
 
@@ -27,7 +27,7 @@ const OrderScreen = ({ match, history }) => {
   const { order, loading, error } = orderDetails
 
   const orderPay = useSelector((state) => state.orderPay)
-  const { loading: loadingPay, success: successPay } = orderPay
+  const { success: successPay } = orderPay
 
   const orderDeliver = useSelector((state) => state.orderDeliver)
   const { loading: loadingDeliver, success: successDeliver } = orderDeliver
@@ -46,40 +46,92 @@ const OrderScreen = ({ match, history }) => {
     )
   }
 
+
+  // Email Js Integration
+  const [EMAIL_JS_SERVICE_ID, SET_EMAIL_JS_SERVICE_ID] = useState('');
+  const [EMAIL_JS_TEMPLATE_ID, SET_EMAIL_JS_TEMPLATE_ID] = useState('');
+  const [EMAIL_JS_USER_ID, SET_EMAIL_JS_USER_ID] = useState('');
+
+  const emailJS = async () => {
+    const {data : EMAIL_JS_SERVICE} = await axios.get('/api/config/emailjsservice')
+    const {data : EMAIL_JS_TEMPLATE} = await axios.get('/api/config/emailjstemplate')
+    const {data : EMAIL_JS_USER} = await axios.get('/api/config/emailjsuser')
+
+    SET_EMAIL_JS_SERVICE_ID(EMAIL_JS_SERVICE)
+    SET_EMAIL_JS_TEMPLATE_ID(EMAIL_JS_TEMPLATE)
+    SET_EMAIL_JS_USER_ID(EMAIL_JS_USER)    
+  }
+
+  console.log(order)
+
+  // Stripe Integration
+   const onToken = (token) => {
+     console.log(token)
+      axios.post('/api/config/secret',{
+        token,
+        amount: Math.floor(order.totalPrice)*100
+      }).then(res => {
+    console.log(res)
+        if(res.data.status==='success'){
+          const paymentResult = {
+            id: userInfo._id,
+            status:res.data.status,
+            email_address: token.email,
+          }
+          console.log(paymentResult)
+          dispatch(payOrder(orderId, paymentResult))
+
+          // Sending Email
+          const data = {
+            from_name: 'kashyapnipun.1999@gmail.com',
+            to_email:token.email,
+            message:"Thanks for purchase :)",
+            to_name:token.name,
+            order_id:order._id,
+            order_item_name: order.orderItems[0].name,
+            order_item_price: order.orderItems[0].price,
+            order_item_product: order.orderItems[0].product,
+            order_item_quantity: order.orderItems[0].qty,
+            shipping_address: order.shippingAddress.address,
+            shipping_price: order.shippingPrice,
+            tax_price: order.taxPrice,
+            total_price: order.totalPrice,
+            phone:order.shippingAddress.phone
+          }
+
+        emailjs.send(EMAIL_JS_SERVICE_ID, EMAIL_JS_TEMPLATE_ID, data, EMAIL_JS_USER_ID)
+        .then(response => {
+          console.log(response.status, response.text);
+        })
+        .catch(err => console.log(err))
+        }
+      })
+      
+  }
+
+  const [stripeKey, setStripeKey] = useState('');
+
   useEffect(() => {
     if (!userInfo) {
       history.push('/login')
     }
-
-    const addPayPalScript = async () => {
-      const { data: clientId } = await axios.get('/api/config/paypal')
-      const script = document.createElement('script')
-      script.type = 'text/javascript'
-      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}`
-      script.async = true
-      script.onload = () => {
-        setSdkReady(true)
-      }
-      document.body.appendChild(script)
-    }
+    const fetchStripe = async () => {
+      const { data: key } = await axios.get('/api/config/stripe')
+      setStripeKey(key) 
+    } 
 
     if (!order || successPay || successDeliver || order._id !== orderId) {
       dispatch({ type: ORDER_PAY_RESET })
       dispatch({ type: ORDER_DELIVER_RESET })
       dispatch(getOrderDetails(orderId))
-    } else if (!order.isPaid) {
-      if (!window.paypal) {
-        addPayPalScript()
-      } else {
-        setSdkReady(true)
-      }
+    }  else {
+      fetchStripe()
+      emailJS()
     }
+    
+
   }, [dispatch, orderId, successPay, successDeliver, order])
 
-  const successPaymentHandler = (paymentResult) => {
-    console.log(paymentResult)
-    dispatch(payOrder(orderId, paymentResult))
-  }
 
   const deliverHandler = () => {
     dispatch(deliverOrder(order))
@@ -201,15 +253,20 @@ const OrderScreen = ({ match, history }) => {
               </ListGroup.Item>
               {!order.isPaid && (
                 <ListGroup.Item>
-                  {loadingPay && <Loader />}
-                  {!sdkReady ? (
-                    <Loader />
-                  ) : (
-                    <PayPalButton
-                      amount={order.totalPrice}
-                      onSuccess={successPaymentHandler}
-                    />
-                  )}
+                    <StripeCheckout
+                    token={onToken}
+                    stripeKey={stripeKey}
+                    amount={Math.floor(order.totalPrice)*100}
+                    shippingAddress={true}
+                    email={userInfo.email}
+                    currency='INR'
+                    zipCode={false}
+                    billingAddress={true}
+                  >
+                     <button className="btn btn-primary">
+                      Pay with credit card
+                       </button>
+                    </StripeCheckout>
                 </ListGroup.Item>
               )}
               {loadingDeliver && <Loader />}
