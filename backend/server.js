@@ -28,7 +28,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/upload', uploadRoutes)
 
-// Stripe 
+// Stripe Integration
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 app.get('/api/config/stripe', async (req, res) =>

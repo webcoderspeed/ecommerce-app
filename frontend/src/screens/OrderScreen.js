@@ -62,23 +62,18 @@ const OrderScreen = ({ match, history }) => {
     SET_EMAIL_JS_USER_ID(EMAIL_JS_USER)    
   }
 
-  console.log(order)
-
   // Stripe Integration
    const onToken = (token) => {
-     console.log(token)
       axios.post('/api/config/secret',{
         token,
         amount: Math.floor(order.totalPrice)*100
       }).then(res => {
-    console.log(res)
         if(res.data.status==='success'){
           const paymentResult = {
             id: userInfo._id,
             status:res.data.status,
             email_address: token.email,
           }
-          console.log(paymentResult)
           dispatch(payOrder(orderId, paymentResult))
 
           // Sending Email
@@ -105,19 +100,21 @@ const OrderScreen = ({ match, history }) => {
         })
         .catch(err => console.log(err))
         }
+
+        history.push('/profile')
       })
       
   }
 
-  const [stripeKey, setStripeKey] = useState('');
+  const [stripeKey, setStripeKey] = useState(null);
 
   useEffect(() => {
     if (!userInfo) {
       history.push('/login')
     }
     const fetchStripe = async () => {
-      const { data: key } = await axios.get('/api/config/stripe')
-      setStripeKey(key) 
+      const {data: key} = await axios.get('/api/config/stripe')
+      setStripeKey(key)
     } 
 
     if (!order || successPay || successDeliver || order._id !== orderId) {
@@ -263,9 +260,9 @@ const OrderScreen = ({ match, history }) => {
                     zipCode={false}
                     billingAddress={true}
                   >
-                     <button className="btn btn-primary">
+                    {stripeKey ?  <button className="btn btn-primary">
                       Pay with credit card
-                       </button>
+                       </button>: <loading/>}
                     </StripeCheckout>
                 </ListGroup.Item>
               )}
