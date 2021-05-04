@@ -31,8 +31,8 @@ app.use('/api/upload', uploadRoutes)
 // Stripe Integration
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
-app.get('/api/config/stripe', async (req, res) =>
-  res.send(process.env.STRIPE_PUBLISHABLE_KEY)
+app.get('/api/config/stripekey', async (req, res) =>
+  res.status(200).send(JSON.stringify(process.env.STRIPE_PUBLISHABLE_KEY))
 )
 
 app.post('/api/config/secret', async (req, res) => {

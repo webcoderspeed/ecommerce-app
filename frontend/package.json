@@ -9,6 +9,7 @@
     "@testing-library/user-event": "^7.2.1",
     "axios": "^0.20.0",
     "dot-env": "0.0.1",
+    "dotenv": "^8.2.0",
     "emailjs-com": "^2.6.4",
     "react": "^16.13.1",
     "react-bootstrap": "^1.3.0",

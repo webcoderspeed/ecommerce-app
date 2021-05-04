@@ -21,6 +21,7 @@ const OrderScreen = ({ match, history }) => {
   const orderId = match.params.id
 
 
+
   const dispatch = useDispatch()
 
   const orderDetails = useSelector((state) => state.orderDetails)
@@ -47,6 +48,7 @@ const OrderScreen = ({ match, history }) => {
   }
 
 
+
   // Email Js Integration
   const [EMAIL_JS_SERVICE_ID, SET_EMAIL_JS_SERVICE_ID] = useState('');
   const [EMAIL_JS_TEMPLATE_ID, SET_EMAIL_JS_TEMPLATE_ID] = useState('');
@@ -61,8 +63,6 @@ const OrderScreen = ({ match, history }) => {
     SET_EMAIL_JS_TEMPLATE_ID(EMAIL_JS_TEMPLATE)
     SET_EMAIL_JS_USER_ID(EMAIL_JS_USER)    
   }
-
-  console.log(order)
 
   // Stripe Integration
    const onToken = (token) => {
@@ -83,10 +83,10 @@ const OrderScreen = ({ match, history }) => {
 
           // Sending Email
           const data = {
-            from_name: 'kashyapnipun.1999@gmail.com',
-            to_email:token.email,
+            from_email: 'kashyapnipun.1999@gmail.com',
+            to_email:userInfo.email,
             message:"Thanks for purchase :)",
-            to_name:token.name,
+            to_name:userInfo.name,
             order_id:order._id,
             order_item_name: order.orderItems[0].name,
             order_item_price: order.orderItems[0].price,
@@ -106,11 +106,14 @@ const OrderScreen = ({ match, history }) => {
         .catch(err => console.log(err))
         }
 
-        history.push('/profile')
+        setTimeout(() => {
+          history.push('/profile')
+        }, 2500)
       })
       
   }
 
+  const [isProcessing, setIsProcessing] = useState(true);
   const [stripeKey, setStripeKey] = useState('');
 
   useEffect(() => {
@@ -118,11 +121,13 @@ const OrderScreen = ({ match, history }) => {
       history.push('/login')
     }
     const fetchStripe = async () => {
-      const { data: key } = await axios.get('/api/config/stripe')
-      setStripeKey(key) 
+      const { data: STRIPE_KEY } = await axios.get('/api/config/stripekey')
+      setStripeKey(STRIPE_KEY) 
+      if(stripeKey !== '' && stripeKey === STRIPE_KEY){
+        setIsProcessing(false)
+      }
     } 
 
-    console.log(stripeKey)
 
     if (!order || successPay || successDeliver || order._id !== orderId) {
       dispatch({ type: ORDER_PAY_RESET })
@@ -132,10 +137,8 @@ const OrderScreen = ({ match, history }) => {
       fetchStripe()
       emailJS()
     }
-    
-
-  }, [dispatch, orderId, successPay, successDeliver, order])
-
+  }, [dispatch, orderId, successPay, successDeliver, order, stripeKey])
+  
 
   const deliverHandler = () => {
     dispatch(deliverOrder(order))
@@ -259,7 +262,7 @@ const OrderScreen = ({ match, history }) => {
                 <ListGroup.Item>
                     <StripeCheckout
                     token={onToken}
-                    stripeKey="pk_test_51Im01RSCM31BWx4aQinPcZIRzzxhjzbDa50uFaWBPycOFS6p5ub3z8swXgZqvcH1lZPW4D9vKlh5iN8lBS1cG9LG00JyPmhnyi"
+                    stripeKey="pk_test_51ImFRsSA0q1XIryS62bGwtLdb5FHgksmwRxfPCcUpHJTSweERwtfuqjiEw0fGRNQ4mPu6kfTkZHvK6RAVnkLupPT00sEyvaJPP"
                     amount={Math.floor(order.totalPrice)*100}
                     shippingAddress={true}
                     email={userInfo.email}
@@ -267,8 +270,8 @@ const OrderScreen = ({ match, history }) => {
                     zipCode={false}
                     billingAddress={true}
                   >
-                     <button className="btn btn-primary">
-                      Pay with credit card
+                     <button className="btn btn-primary" disabled={isProcessing}>
+                      { isProcessing ? " Proccesing " : "Pay with credit card"}
                        </button>
                     </StripeCheckout>
                 </ListGroup.Item>
